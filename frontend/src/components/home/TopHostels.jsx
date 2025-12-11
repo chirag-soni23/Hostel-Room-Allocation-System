@@ -1,11 +1,20 @@
-import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { HostelCard } from '@/components/cards/HostelCard';
-import { mockHostels } from '@/data/mockData';
+import { useEffect } from "react";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { HostelCard } from "@/components/cards/HostelCard";
+import { useHostelStore } from "@/stores/hostelStore";
 
 export function TopHostels() {
+  const { fetchHostels, hostels = [], loading } = useHostelStore();
+
+  useEffect(() => {
+    fetchHostels();
+  }, []);
+
+  const items = Array.isArray(hostels) ? hostels.slice(0, 3) : [];
+
   return (
     <section className="py-20">
       <div className="container mx-auto px-4">
@@ -26,17 +35,25 @@ export function TopHostels() {
           </div>
           <Button variant="ghost" asChild className="group">
             <Link to="/hostels">
-              Explore All Hostels
+              View All Hostels
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {mockHostels.map((hostel, index) => (
-            <HostelCard key={hostel.id} hostel={hostel} index={index} />
-          ))}
-        </div>
+        {loading ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-64 rounded-xl border bg-muted/40 animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {items.map((hostel, index) => (
+              <HostelCard key={hostel._id || index} hostel={hostel} index={index} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

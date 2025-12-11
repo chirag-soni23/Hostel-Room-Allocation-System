@@ -1,31 +1,70 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, MapPin, Filter } from 'lucide-react';
-import { Layout } from '@/components/layout/Layout';
-import { HostelCard } from '@/components/cards/HostelCard';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { 
+import { useState, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
+import { Search, MapPin, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { Layout } from "@/components/layout/Layout";
+import { HostelCard } from "@/components/cards/HostelCard";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { mockHostels } from '@/data/mockData';
-
-const cities = ['All Cities', 'Mumbai', 'Delhi', 'Bangalore', 'Chennai', 'Hyderabad'];
+} from "@/components/ui/select";
+import { useHostelStore } from "@/stores/hostelStore";
+import api from "@/lib/axios";
 
 export default function Hostels() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCity, setSelectedCity] = useState('All Cities');
+  const { fetchHostels, hostels, loading, total } = useHostelStore();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCity, setSelectedCity] = useState("All Cities");
+  const [cities, setCities] = useState(["All Cities"]);
 
-  const filteredHostels = mockHostels.filter((hostel) => {
-    const matchesSearch = hostel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          hostel.address.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCity = selectedCity === 'All Cities' || hostel.city === selectedCity;
-    return matchesSearch && matchesCity;
-  });
+  const [page, setPage] = useState(1);
+  const limit = 12;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get("/hostel/cities/list");
+        const list = Array.isArray(data?.data) ? data.data : [];
+        setCities(["All Cities", ...list]);
+      } catch {
+        setCities(["All Cities"]);
+      }
+    })();
+  }, []);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchHostels({ page, limit });
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fetchHostels({
+        q: searchQuery || undefined,
+        city: selectedCity !== "All Cities" ? selectedCity : undefined,
+        page,
+        limit,
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchQuery, selectedCity, page]);
+
+  const items = useMemo(
+    () => (Array.isArray(hostels) ? hostels : hostels?.items || []),
+    [hostels]
+  );
+
+  const totalPages = Math.max(1, Math.ceil((total || items.length) / limit));
+
+  const goto = (p) => {
+    if (p < 1 || p > totalPages) return;
+    setPage(p);
+  };
 
   return (
     <Layout>
@@ -44,6 +83,7 @@ export default function Hostels() {
           </p>
         </motion.div>
 
+        {/* Filters */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -57,13 +97,22 @@ export default function Hostels() {
                 type="text"
                 placeholder="Search hostels..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setPage(1);
+                  setSearchQuery(e.target.value);
+                }}
                 className="pl-10"
               />
             </div>
             <div className="flex gap-3">
-              <Select value={selectedCity} onValueChange={setSelectedCity}>
-                <SelectTrigger className="w-[160px]">
+              <Select
+                value={selectedCity}
+                onValueChange={(v) => {
+                  setPage(1);
+                  setSelectedCity(v);
+                }}
+              >
+                <SelectTrigger className="w-[200px]">
                   <MapPin className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="City" />
                 </SelectTrigger>
@@ -75,19 +124,84 @@ export default function Hostels() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" title="More filters soon">
                 <Filter className="h-4 w-4" />
               </Button>
             </div>
           </div>
         </motion.div>
 
-        {filteredHostels.length > 0 ? (
+        {/* Grid */}
+        {loading ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredHostels.map((hostel, index) => (
-              <HostelCard key={hostel.id} hostel={hostel} index={index} />
+            {Array.from({ length: limit }).map((_, i) => (
+              <div
+                key={i}
+                className="h-64 rounded-xl border bg-muted/40 animate-pulse"
+              />
             ))}
           </div>
+        ) : items.length > 0 ? (
+          <>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {items.map((hostel, index) => (
+                <HostelCard
+                  key={hostel._id || hostel.id || index}
+                  hostel={hostel}
+                  index={index}
+                />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goto(page - 1)}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Prev
+                </Button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const p = i + 1;
+                    // compact: show first, last, current ±1
+                    const show =
+                      p === 1 ||
+                      p === totalPages ||
+                      Math.abs(p - page) <= 1;
+                    if (!show) return i === 1 || i === totalPages - 2 ? (
+                      <span key={p} className="px-2 text-muted-foreground">…</span>
+                    ) : null;
+                    return (
+                      <Button
+                        key={p}
+                        variant={p === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goto(p)}
+                      >
+                        {p}
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goto(page + 1)}
+                  disabled={page === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           <motion.div
             initial={{ opacity: 0 }}
@@ -99,7 +213,7 @@ export default function Hostels() {
             </div>
             <h3 className="text-xl font-semibold mb-2">No hostels found</h3>
             <p className="text-muted-foreground">
-              Try adjusting your search or filter criteria
+              Try adjusting your search or city
             </p>
           </motion.div>
         )}

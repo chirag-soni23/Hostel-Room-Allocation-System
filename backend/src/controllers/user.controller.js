@@ -3,7 +3,6 @@ import Joi from "joi";
 import { User, validateUser } from "../models/user.model.js";
 import { generateToken } from "../utils/generateToken.js";
 
-/* ----------------------------- REGISTER ----------------------------- */
 export const register = async (req, res) => {
   try {
     const { error } = validateUser(req.body);
@@ -11,7 +10,6 @@ export const register = async (req, res) => {
 
     const { firstName, lastName, email, password, phone } = req.body;
 
-    // unique checks
     const existingByEmail = await User.findOne({ email: String(email).toLowerCase().trim() });
     if (existingByEmail) return res.status(409).json({ message: "Email already in use" });
 
@@ -50,7 +48,6 @@ export const register = async (req, res) => {
   }
 };
 
-/* ------------------------------- LOGIN ------------------------------ */
 const loginSchema = Joi.object({
   email: Joi.string().email().required().messages({
     "string.email": "Invalid email format",
@@ -95,7 +92,6 @@ export const login = async (req, res) => {
   }
 };
 
-/* ----------------------------- GET PROFILE ----------------------------- */
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user?.id).select("-password");
@@ -106,7 +102,6 @@ export const getProfile = async (req, res) => {
   }
 };
 
-/* --------------------------- UPDATE PROFILE --------------------------- */
 const updateProfileSchema = Joi.object({
   firstName: Joi.string().min(2).max(30).optional(),
   lastName: Joi.string().min(2).max(30).optional(),
@@ -158,7 +153,6 @@ export const updateProfile = async (req, res) => {
   }
 };
 
-/* --------------------------- CHANGE PASSWORD -------------------------- */
 const changePasswordSchema = Joi.object({
   oldPassword: Joi.string().required(),
   newPassword: Joi.string().min(6).max(30).required(),
@@ -189,14 +183,12 @@ export const changePassword = async (req, res) => {
   }
 };
 
-/* -------------------------------- LOGOUT ------------------------------- */
 export const logout = async (req, res) => {
   try {
-    // Clear the exact cookie name you set in generateToken
     res.clearCookie("token", {
       httpOnly: true,
-      secure: true,     // set false for local http if needed
-      sameSite: "none", // use "lax" if same-site
+      secure: true,  
+      sameSite: "none",
     });
     return res.status(200).json({ message: "Logged out" });
   } catch (err) {

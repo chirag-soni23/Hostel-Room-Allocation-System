@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/authStore";
 import BottomToTop from "./hoc/BottomToTop";
 import ScrollToTop from "./hoc/ScrollToTop";
 import FullscreenSpinner from "./hoc/FullscreenSpinner";
+import AddHostel from "./pages/admin/AddHostel";
 
 const Index = lazy(() => import("./pages/Index"));
 const Hostels = lazy(() => import("./pages/Hostels"));
@@ -116,6 +117,14 @@ const App = () => {
               element={
                 <RequireAdmin>
                   <AdminDashboard />
+                </RequireAdmin>
+              }
+            />
+            <Route
+              path="/admin/hostels/new"
+              element={
+                <RequireAdmin>
+                  <AddHostel />
                 </RequireAdmin>
               }
             />

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2,
   Menu,
@@ -12,9 +12,9 @@ import {
   Home as HomeIcon,
   Moon,
   Sun,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/stores/authStore';
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/stores/authStore";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -24,27 +24,27 @@ export function Navbar() {
 
   const toggleTheme = () => {
     setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
+    document.documentElement.classList.toggle("dark");
   };
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
   };
 
   const navLinks = [
-    { href: '/', label: 'Home', icon: HomeIcon },
-    { href: '/hostels', label: 'Hostels', icon: Building2 },
-    { href: '/rooms', label: 'Rooms', icon: BookOpen },
+    { href: "/", label: "Home", icon: HomeIcon },
+    { href: "/hostels", label: "Hostels", icon: Building2 },
+    { href: "/rooms", label: "Rooms", icon: BookOpen },
   ];
 
   const userLinks = isAuth
     ? [
-        ...(user?.role === 'admin'
-          ? [{ href: '/admin', label: 'Dashboard', icon: LayoutDashboard }]
+        ...(user?.role === "admin"
+          ? [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }]
           : []),
-        { href: '/bookings', label: 'My Bookings', icon: BookOpen },
-        { href: '/profile', label: 'Profile', icon: User },
+        { href: "/bookings", label: "My Bookings", icon: BookOpen },
+        { href: "/profile", label: "Profile", icon: User },
       ]
     : [];
 
@@ -82,18 +82,18 @@ export function Navbar() {
               onClick={toggleTheme}
               className="rounded-lg p-2 hover:bg-accent/50 transition-colors"
             >
-              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {isDark ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
             </button>
 
             {isAuth ? (
               <div className="flex items-center gap-2">
                 {userLinks.map((link) => (
-                  <Button variant="ghost" asChild>
-                    <Link
-                      key={link.href}
-                      to={link.href}
-                      className="flex items-center gap-2"
-                    >
+                  <Button key={link.href} variant="ghost" asChild>
+                    <Link to={link.href} className="flex items-center gap-2">
                       <link.icon className="h-4 w-4" />
                       {link.label}
                     </Link>
@@ -117,11 +117,26 @@ export function Navbar() {
           </div>
 
           <div className="flex md:hidden items-center gap-2">
-            <button onClick={toggleTheme} className="p-2 hover:bg-accent/50 transition-colors rounded-lg">
-              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <button
+              onClick={toggleTheme}
+              className="p-2 hover:bg-accent/50 transition-colors rounded-lg"
+            >
+              {isDark ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
             </button>
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(!isOpen)}>
-              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
             </Button>
           </div>
         </div>
@@ -132,7 +147,7 @@ export function Navbar() {
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden border-t border-border bg-background"
           >
