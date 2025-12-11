@@ -1,5 +1,4 @@
-// src/pages/admin/AddHostel.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Input } from "@/components/ui/input";
@@ -11,7 +10,6 @@ import {
   ArrowLeft,
   Trash2,
   Pencil,
-  Plus,
   RefreshCcw,
   Search,
   MapPin,
@@ -36,32 +34,30 @@ export default function AddHostel() {
     total,
   } = useHostelStore();
 
-  // form + list states
   const [selectedId, setSelectedId] = useState(null);
   const isEdit = Boolean(selectedId);
 
-  const [form, setForm] = useState({
+  const initialForm = {
     name: "",
     location: "",
     amenities: "",
     rules: "",
     photoFile: null,
-  });
-  const [preview, setPreview] = useState(null);
+  };
 
-  // filters + pagination
+  const [form, setForm] = useState(initialForm);
+  const [preview, setPreview] = useState(null);
+  const fileRef = useRef(null);
+
   const [q, setQ] = useState("");
   const [city, setCity] = useState("");
   const [page, setPage] = useState(1);
-  const limit = 5; // 👈 limit set to 5
+  const limit = 5;
 
-  // load initial list
   useEffect(() => {
     fetchHostels({ page, limit });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // filters / search triggers
   useEffect(() => {
     const t = setTimeout(() => {
       fetchHostels({
@@ -72,10 +68,8 @@ export default function AddHostel() {
       });
     }, 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, city, page]);
 
-  // when editing specific id
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -84,24 +78,17 @@ export default function AddHostel() {
       } else {
         clearHostel();
         if (mounted) {
-          setForm({
-            name: "",
-            location: "",
-            amenities: "",
-            rules: "",
-            photoFile: null,
-          });
+          setForm(initialForm);
           setPreview(null);
+          if (fileRef.current) fileRef.current.value = "";
         }
       }
     })();
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  // prefill when hostel fetched
   useEffect(() => {
     if (isEdit && hostel?._id === selectedId) {
       setForm({
@@ -116,8 +103,8 @@ export default function AddHostel() {
         photoFile: null,
       });
       setPreview(hostel.photo || null);
+      if (fileRef.current) fileRef.current.value = "";
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hostel, isEdit, selectedId]);
 
   const onChange = (e) => {
@@ -142,19 +129,33 @@ export default function AddHostel() {
     [form]
   );
 
+  const resetForm = () => {
+    setForm(initialForm);
+    setPreview(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (isEdit) await updateHostel(selectedId, payload);
-    else await createHostel(payload);
+    if (isEdit) {
+      await updateHostel(selectedId, payload);
+      setSelectedId(null);
+      resetForm();
+    } else {
+      await createHostel(payload);
+      resetForm();
+    }
     await fetchHostels({ q, city, page, limit });
-    setSelectedId(null);
   };
 
   const onDelete = async (id) => {
     if (window.confirm("Delete this hostel permanently?")) {
       await deleteHostel(id);
       await fetchHostels({ q, city, page, limit });
-      if (selectedId === id) setSelectedId(null);
+      if (selectedId === id) {
+        setSelectedId(null);
+        resetForm();
+      }
     }
   };
 
@@ -170,7 +171,6 @@ export default function AddHostel() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        {/* Top bar */}
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-display font-bold">
@@ -181,16 +181,14 @@ export default function AddHostel() {
             </p>
           </div>
           <Button asChild variant="ghost" size="sm">
-            <Link to="/admin/dashboard">
+            <Link to="/admin">
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
             </Link>
           </Button>
         </div>
 
-        {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Form column */}
           <div className="lg:col-span-5">
             <div className="glass-card p-6 space-y-6">
               <div className="flex items-center justify-between">
@@ -262,6 +260,7 @@ export default function AddHostel() {
                       type="file"
                       accept="image/*"
                       onChange={onChange}
+                      ref={fileRef}
                     />
                     <p className="text-xs text-muted-foreground mt-1">
                       Recommended 1280×720 or higher.
@@ -300,7 +299,10 @@ export default function AddHostel() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setSelectedId(null)}
+                        onClick={() => {
+                          setSelectedId(null);
+                          resetForm();
+                        }}
                       >
                         Cancel
                       </Button>
@@ -320,7 +322,6 @@ export default function AddHostel() {
             </div>
           </div>
 
-          {/* List column */}
           <div className="lg:col-span-7">
             <div className="glass-card p-4 mb-4">
               <div className="flex flex-col sm:flex-row gap-3">
@@ -340,9 +341,7 @@ export default function AddHostel() {
                 />
                 <Button
                   variant="outline"
-                  onClick={() =>
-                    fetchHostels({ q, city, page, limit })
-                  }
+                  onClick={() => fetchHostels({ q, city, page, limit })}
                 >
                   <RefreshCcw className="h-4 w-4 mr-2" />
                   Refresh
@@ -414,7 +413,6 @@ export default function AddHostel() {
               )}
             </div>
 
-            {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-3 mt-6">
                 <Button
