@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,16 +16,54 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
 
+function getInitialTheme() {
+  try {
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark") return true;
+    if (saved === "light") return false;
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+  } catch {
+    return false;
+  }
+}
+
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => getInitialTheme());
   const { user, isAuth, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle("dark");
-  };
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [isDark]);
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === "theme" && (e.newValue === "dark" || e.newValue === "light")) {
+        setIsDark(e.newValue === "dark");
+      }
+    };
+    const media = window.matchMedia?.("(prefers-color-scheme: dark)");
+    const onMedia = (e) => {
+      const saved = localStorage.getItem("theme");
+      if (!saved) setIsDark(e.matches);
+    };
+    window.addEventListener("storage", onStorage);
+    media?.addEventListener?.("change", onMedia);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      media?.removeEventListener?.("change", onMedia);
+    };
+  }, []);
+
+  const toggleTheme = () => setIsDark((v) => !v);
 
   const handleLogout = () => {
     logout();
@@ -82,11 +120,7 @@ export function Navbar() {
               onClick={toggleTheme}
               className="rounded-lg p-2 hover:bg-accent/50 transition-colors"
             >
-              {isDark ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
 
             {isAuth ? (
@@ -121,22 +155,14 @@ export function Navbar() {
               onClick={toggleTheme}
               className="p-2 hover:bg-accent/50 transition-colors rounded-lg"
             >
-              {isDark ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsOpen(!isOpen)}
+              onClick={() => setIsOpen((o) => !o)}
             >
-              {isOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
+              {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
