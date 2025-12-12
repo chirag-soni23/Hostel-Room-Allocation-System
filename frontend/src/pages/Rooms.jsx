@@ -1,82 +1,110 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Filter, SlidersHorizontal, X } from 'lucide-react';
-import { Layout } from '@/components/layout/Layout';
-import { RoomCard } from '@/components/cards/RoomCard';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
+import { useState, useEffect } from "react";
+import { Search, Filter, SlidersHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react";
+
+import { Layout } from "@/components/layout/Layout";
+import { RoomCard } from "@/components/cards/RoomCard";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
+
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
+
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet';
-import { mockRooms, mockHostels } from '@/data/mockData';
+} from "@/components/ui/sheet";
 
-const roomTypes = ['Single', 'Double', 'Triple'];
-const genderOptions = ['Male', 'Female', 'Any'];
+import { useHostelStore } from "@/stores/hostelStore";
+import { useRoomStore } from "@/stores/roomStore";
+
+const roomTypes = ["single", "double", "triple"];
+const genderOptions = ["male", "female", "any"];
 
 export default function Rooms() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [selectedGender, setSelectedGender] = useState('all');
-  const [selectedHostel, setSelectedHostel] = useState('all');
+  const { hostels, fetchHostels } = useHostelStore();
+  const { rooms, fetchRooms, loading, total } = useRoomStore();
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState("all");
+  const [selectedGender, setSelectedGender] = useState("all");
+  const [selectedHostel, setSelectedHostel] = useState("all");
   const [priceRange, setPriceRange] = useState([0, 15000]);
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
 
-  const filteredRooms = mockRooms.filter((room) => {
-    const matchesSearch =
-      room.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      room.hostel?.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = selectedType === 'all' || room.type === selectedType;
-    const matchesGender = selectedGender === 'all' || room.gender === selectedGender;
-    const matchesHostel = selectedHostel === 'all' || room.hostelId === selectedHostel;
-    const matchesPrice =
-      room.pricePerMonth >= priceRange[0] && room.pricePerMonth <= priceRange[1];
-    const matchesAvailability =
-      !showAvailableOnly || (room.isAvailable && room.capacity > room.occupied);
+  const [page, setPage] = useState(1);
+  const limit = 6; 
+  const totalPages = Math.max(1, Math.ceil((total || rooms.length) / limit));
 
-    return (
-      matchesSearch &&
-      matchesType &&
-      matchesGender &&
-      matchesHostel &&
-      matchesPrice &&
-      matchesAvailability
-    );
-  });
+  useEffect(() => {
+    fetchHostels();
+    applyFilters();
+  }, []);
+
+  const applyFilters = () => {
+    fetchRooms({
+      q: searchQuery || undefined,
+      type: selectedType !== "all" ? selectedType : undefined,
+      gender: selectedGender !== "all" ? selectedGender : undefined,
+      hostelId: selectedHostel !== "all" ? selectedHostel : undefined,
+      minRent: priceRange[0] > 0 ? priceRange[0] : undefined,
+      maxRent: priceRange[1] < 15000 ? priceRange[1] : undefined,
+      available: showAvailableOnly || undefined,
+      page,
+      limit,
+    });
+  };
+
+  useEffect(() => {
+    applyFilters();
+  }, [
+    searchQuery,
+    selectedType,
+    selectedGender,
+    selectedHostel,
+    priceRange,
+    showAvailableOnly,
+    page,
+  ]);
 
   const activeFiltersCount = [
-    selectedType !== 'all',
-    selectedGender !== 'all',
-    selectedHostel !== 'all',
+    selectedType !== "all",
+    selectedGender !== "all",
+    selectedHostel !== "all",
     priceRange[0] > 0 || priceRange[1] < 15000,
     showAvailableOnly,
   ].filter(Boolean).length;
 
   const clearFilters = () => {
-    setSelectedType('all');
-    setSelectedGender('all');
-    setSelectedHostel('all');
+    setSelectedType("all");
+    setSelectedGender("all");
+    setSelectedHostel("all");
     setPriceRange([0, 15000]);
     setShowAvailableOnly(false);
+    setSearchQuery("");
+    setPage(1);
+  };
+
+  const gotoPage = (p) => {
+    if (p < 1 || p > totalPages) return;
+    setPage(p);
   };
 
   const FiltersContent = () => (
     <div className="space-y-6">
+      {/* Room Type */}
       <div>
         <label className="text-sm font-medium mb-2 block">Room Type</label>
-        <Select value={selectedType} onValueChange={(v) => setSelectedType(v)}>
+        <Select value={selectedType} onValueChange={setSelectedType}>
           <SelectTrigger>
             <SelectValue placeholder="All Types" />
           </SelectTrigger>
@@ -84,16 +112,17 @@ export default function Rooms() {
             <SelectItem value="all">All Types</SelectItem>
             {roomTypes.map((type) => (
               <SelectItem key={type} value={type}>
-                {type}
+                {type.toUpperCase()}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
+      {/* Gender */}
       <div>
-        <label className="text-sm font-medium mb-2 block">Gender Preference</label>
-        <Select value={selectedGender} onValueChange={(v) => setSelectedGender(v)}>
+        <label className="text-sm font-medium mb-2 block">Gender</label>
+        <Select value={selectedGender} onValueChange={setSelectedGender}>
           <SelectTrigger>
             <SelectValue placeholder="All" />
           </SelectTrigger>
@@ -101,13 +130,14 @@ export default function Rooms() {
             <SelectItem value="all">All</SelectItem>
             {genderOptions.map((gender) => (
               <SelectItem key={gender} value={gender}>
-                {gender}
+                {gender.toUpperCase()}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
+      {/* Hostel */}
       <div>
         <label className="text-sm font-medium mb-2 block">Hostel</label>
         <Select value={selectedHostel} onValueChange={setSelectedHostel}>
@@ -116,8 +146,8 @@ export default function Rooms() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Hostels</SelectItem>
-            {mockHostels.map((hostel) => (
-              <SelectItem key={hostel.id} value={hostel.id}>
+            {hostels?.map((hostel) => (
+              <SelectItem key={hostel._id} value={hostel._id}>
                 {hostel.name}
               </SelectItem>
             ))}
@@ -125,35 +155,35 @@ export default function Rooms() {
         </Select>
       </div>
 
+      {/* Price Range */}
       <div>
         <label className="text-sm font-medium mb-4 block">
-          Price Range: ₹{priceRange[0].toLocaleString()} - ₹{priceRange[1].toLocaleString()}
+          Price: ₹{priceRange[0]} – ₹{priceRange[1]}
         </label>
         <Slider
           value={priceRange}
           onValueChange={setPriceRange}
-          max={15000}
           min={0}
+          max={15000}
           step={500}
-          className="mt-2"
         />
       </div>
 
+      {/* Available Only */}
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium">Available Only</label>
         <Button
-          variant={showAvailableOnly ? 'default' : 'outline'}
+          variant={showAvailableOnly ? "default" : "outline"}
           size="sm"
           onClick={() => setShowAvailableOnly(!showAvailableOnly)}
         >
-          {showAvailableOnly ? 'On' : 'Off'}
+          {showAvailableOnly ? "On" : "Off"}
         </Button>
       </div>
 
       {activeFiltersCount > 0 && (
         <Button variant="ghost" className="w-full" onClick={clearFilters}>
-          <X className="h-4 w-4 mr-2" />
-          Clear All Filters
+          <X className="h-4 w-4 mr-2" /> Clear All Filters
         </Button>
       )}
     </div>
@@ -162,33 +192,55 @@ export default function Rooms() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl sm:text-4xl font-display font-bold mb-2">
-            Browse <span className="gradient-text">Rooms</span>
-          </h1>
-          <p className="text-muted-foreground">
-            Find and book your ideal room with our advanced filters
-          </p>
-        </motion.div>
+        <h1 className="text-3xl sm:text-4xl font-bold mb-3">Browse Rooms</h1>
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        {/* Search */}
+        <div className="flex gap-3 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search rooms or hostels..."
+              value={searchQuery}
+              onChange={(e) => {
+                setPage(1);
+                setSearchQuery(e.target.value);
+              }}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Mobile Filters */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="lg:hidden">
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {activeFiltersCount}
+                  </Badge>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left">
+              <SheetHeader>
+                <SheetTitle>Filters</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6">
+                <FiltersContent />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        <div className="flex gap-8">
           {/* Desktop Filters */}
-          <motion.aside
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="hidden lg:block w-72 shrink-0"
-          >
+          <aside className="hidden lg:block w-72">
             <div className="glass-card p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-display font-semibold flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  Filters
+                <h2 className="font-semibold flex items-center gap-2">
+                  <SlidersHorizontal className="h-4 w-4" /> Filters
                 </h2>
                 {activeFiltersCount > 0 && (
                   <Badge variant="secondary">{activeFiltersCount} active</Badge>
@@ -196,79 +248,65 @@ export default function Rooms() {
               </div>
               <FiltersContent />
             </div>
-          </motion.aside>
+          </aside>
 
-          {/* Main Content */}
+          {/* Room List */}
           <div className="flex-1">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="flex flex-col sm:flex-row gap-3 mb-6"
-            >
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Search rooms..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Mobile Filters */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="lg:hidden">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filters
-                    {activeFiltersCount > 0 && (
-                      <Badge variant="secondary" className="ml-2">
-                        {activeFiltersCount}
-                      </Badge>
-                    )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left">
-                  <SheetHeader>
-                    <SheetTitle>Filters</SheetTitle>
-                  </SheetHeader>
-                  <div className="mt-6">
-                    <FiltersContent />
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </motion.div>
-
-            <p className="text-sm text-muted-foreground mb-6">
-              Showing {filteredRooms.length} room
-              {filteredRooms.length !== 1 ? 's' : ''}
+            <p className="text-sm text-muted-foreground mb-4">
+              Showing {rooms.length} rooms
             </p>
 
-            {filteredRooms.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {filteredRooms.map((room, index) => (
-                  <RoomCard key={room.id} room={room} index={index} />
-                ))}
-              </div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-16 glass-card"
-              >
-                <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-muted mb-4">
-                  <Search className="h-10 w-10 text-muted-foreground" />
+            {loading ? (
+              <p>Loading rooms...</p>
+            ) : rooms.length > 0 ? (
+              <>
+                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                  {rooms.map((room, idx) => (
+                    <RoomCard key={room._id} room={room} index={idx} />
+                  ))}
                 </div>
-                <h3 className="text-xl font-semibold mb-2">No rooms found</h3>
-                <p className="text-muted-foreground mb-4">
-                  Try adjusting your filters or search query
-                </p>
-                <Button variant="outline" onClick={clearFilters}>
-                  Clear Filters
-                </Button>
-              </motion.div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-8">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => gotoPage(page - 1)}
+                      disabled={page === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Prev
+                    </Button>
+
+                    {Array.from({ length: totalPages }).map((_, i) => {
+                      const p = i + 1;
+                      return (
+                        <Button
+                          key={p}
+                          variant={p === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => gotoPage(p)}
+                        >
+                          {p}
+                        </Button>
+                      );
+                    })}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => gotoPage(page + 1)}
+                      disabled={page === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p>No rooms found</p>
             )}
           </div>
         </div>

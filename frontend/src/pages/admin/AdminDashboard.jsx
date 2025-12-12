@@ -79,12 +79,22 @@ export default function AdminDashboard() {
               Welcome back! Here's an overview of your hostel operations.
             </p>
           </div>
-          <Button asChild className="shrink-0">
-            <Link to="/admin/hostels/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Hostel
-            </Link>
-          </Button>
+
+          <div className="flex items-center gap-3">
+            <Button asChild className="shrink-0" variant="outline">
+              <Link to="/admin/rooms/new">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Room
+              </Link>
+            </Button>
+
+            <Button asChild className="shrink-0">
+              <Link to="/admin/hostels/new">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Hostel
+              </Link>
+            </Button>
+          </div>
         </motion.div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mb-8">

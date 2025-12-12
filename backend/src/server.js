@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import userRoutes from "./routes/user.routes.js";
 import hostelRoutes from "./routes/hostel.routes.js";
+import roomRoutes from "./routes/room.routes.js";
 import { connectDb } from "./database/db.js";
 
 
@@ -28,6 +29,7 @@ app.use(
 // routes 
 app.use("/api/user",userRoutes);
 app.use("/api/hostel",hostelRoutes);
+app.use("/api/room",roomRoutes);
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running at http://localhost:${PORT}`);

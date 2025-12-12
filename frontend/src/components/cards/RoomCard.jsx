@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 export function RoomCard({ room, index = 0 }) {
-  const availableSpots = room.capacity - room.occupied;
-  const isAvailable = availableSpots > 0 && room.isAvailable;
+  const availableSpots = (room.capacity || 0) - (room.occupied || 0);
+
+  const isAvailable = room.available && availableSpots > 0;
 
   return (
     <motion.div
@@ -19,12 +20,14 @@ export function RoomCard({ room, index = 0 }) {
       <div className="relative overflow-hidden">
         <img
           src={
-            room.images[0] ||
+            room.photos?.[0] ||
             'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&h=400&fit=crop'
           }
-          alt={`Room ${room.roomNumber}`}
+          alt={`Room ${room.number}`}
           className="room-card-image transition-transform duration-500 group-hover:scale-110"
         />
+
+        {/* Status Tags */}
         <div className="absolute top-3 left-3 flex gap-2">
           <Badge
             variant={isAvailable ? 'default' : 'secondary'}
@@ -39,19 +42,18 @@ export function RoomCard({ room, index = 0 }) {
             )}
             {isAvailable ? 'Available' : 'Full'}
           </Badge>
-          <Badge
-            variant="secondary"
-            className="bg-background/90 backdrop-blur-sm"
-          >
+
+          <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm">
             {room.type}
           </Badge>
         </div>
+
         <div className="absolute top-3 right-3">
           <Badge
             variant="outline"
             className="bg-background/90 backdrop-blur-sm border-0"
           >
-            {room.gender}
+            {room.genderPreference}
           </Badge>
         </div>
       </div>
@@ -60,8 +62,9 @@ export function RoomCard({ room, index = 0 }) {
         <div className="flex items-start justify-between gap-2">
           <div>
             <h3 className="font-display font-semibold text-lg">
-              Room {room.roomNumber}
+              Room {room.number}
             </h3>
+
             {room.hostel && (
               <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                 <MapPin className="h-3.5 w-3.5" />
@@ -69,10 +72,11 @@ export function RoomCard({ room, index = 0 }) {
               </p>
             )}
           </div>
+
           <div className="text-right">
             <div className="flex items-center justify-end text-lg font-bold text-primary">
               <IndianRupee className="h-4 w-4" />
-              {room.pricePerMonth.toLocaleString()}
+              {room.monthlyRent?.toLocaleString()}
             </div>
             <span className="text-xs text-muted-foreground">/month</span>
           </div>
@@ -83,6 +87,7 @@ export function RoomCard({ room, index = 0 }) {
             <Bed className="h-4 w-4" />
             <span>{room.type}</span>
           </div>
+
           <div className="flex items-center gap-1.5">
             <Users className="h-4 w-4" />
             <span>
@@ -93,11 +98,12 @@ export function RoomCard({ room, index = 0 }) {
 
         <div className="flex gap-2 pt-3">
           <Button variant="outline" className="flex-1" asChild>
-            <Link to={`/rooms/${room.id}`}>View Details</Link>
+            <Link to={`/rooms/${room._id}`}>View Details</Link>
           </Button>
+
           {isAvailable && (
             <Button variant="default" className="flex-1" asChild>
-              <Link to={`/rooms/${room.id}`}>Book Now</Link>
+              <Link to={`/rooms/${room._id}`}>Book Now</Link>
             </Button>
           )}
         </div>

@@ -8,6 +8,7 @@ import BottomToTop from "./hoc/BottomToTop";
 import ScrollToTop from "./hoc/ScrollToTop";
 import FullscreenSpinner from "./hoc/FullscreenSpinner";
 import AddHostel from "./pages/admin/AddHostel";
+import AddRoom from "./pages/admin/AddRoom";
 
 const Index = lazy(() => import("./pages/Index"));
 const Hostels = lazy(() => import("./pages/Hostels"));
@@ -125,6 +126,15 @@ const App = () => {
               element={
                 <RequireAdmin>
                   <AddHostel />
+                </RequireAdmin>
+              }
+            />
+
+            <Route
+              path="/admin/rooms/new"
+              element={
+                <RequireAdmin>
+                  <AddRoom />
                 </RequireAdmin>
               }
             />

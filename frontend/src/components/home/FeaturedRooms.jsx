@@ -1,12 +1,24 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RoomCard } from '@/components/cards/RoomCard';
-import { mockRooms } from '@/data/mockData';
+
+import { useRoomStore } from '@/stores/roomStore';
 
 export function FeaturedRooms() {
-  const featuredRooms = mockRooms.filter((room) => room.isAvailable).slice(0, 3);
+  const { rooms, fetchRooms, loading } = useRoomStore();
+
+  // Fetch all rooms from API
+  useEffect(() => {
+    fetchRooms();
+  }, []);
+
+  // Featured = only available + slice 3
+  const featuredRooms = rooms
+    .filter((r) => r.available === true || r.isActive === true)
+    .slice(0, 3);
 
   return (
     <section className="py-20 bg-muted/30">
@@ -34,11 +46,23 @@ export function FeaturedRooms() {
           </Button>
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {featuredRooms.map((room, index) => (
-            <RoomCard key={room.id} room={room} index={index} />
-          ))}
-        </div>
+        {/* Loading Skeleton */}
+        {loading && (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="h-52 bg-muted rounded-xl animate-pulse" />
+            <div className="h-52 bg-muted rounded-xl animate-pulse" />
+            <div className="h-52 bg-muted rounded-xl animate-pulse" />
+          </div>
+        )}
+
+        {/* Featured Rooms */}
+        {!loading && (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {featuredRooms.map((room, index) => (
+              <RoomCard key={room._id} room={room} index={index} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
