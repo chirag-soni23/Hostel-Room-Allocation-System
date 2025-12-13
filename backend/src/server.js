@@ -5,6 +5,7 @@ import cors from "cors";
 import userRoutes from "./routes/user.routes.js";
 import hostelRoutes from "./routes/hostel.routes.js";
 import roomRoutes from "./routes/room.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
 import { connectDb } from "./database/db.js";
 
 
@@ -30,6 +31,7 @@ app.use(
 app.use("/api/user",userRoutes);
 app.use("/api/hostel",hostelRoutes);
 app.use("/api/room",roomRoutes);
+app.use("/api/contact",contactRoutes);
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running at http://localhost:${PORT}`);

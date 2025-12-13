@@ -12,6 +12,7 @@ import {
   Home as HomeIcon,
   Moon,
   Sun,
+  ContactIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
@@ -74,6 +75,7 @@ export function Navbar() {
     { href: "/", label: "Home", icon: HomeIcon },
     { href: "/hostels", label: "Hostels", icon: Building2 },
     { href: "/rooms", label: "Rooms", icon: BookOpen },
+    { href: "/contact", label: "Contact", icon: ContactIcon },
   ];
 
   const userLinks = isAuth
