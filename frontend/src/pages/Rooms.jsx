@@ -1,4 +1,6 @@
+// Rooms.jsx
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -41,6 +43,8 @@ export default function Rooms() {
   const { hostels, fetchHostels } = useHostelStore();
   const { rooms, fetchRooms, loading, total } = useRoomStore();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedGender, setSelectedGender] = useState("all");
@@ -53,12 +57,36 @@ export default function Rooms() {
 
   const totalPages = Math.max(1, Math.ceil((total || rooms.length) / limit));
 
-  // initial load
+  // load hostels once
   useEffect(() => {
     fetchHostels();
   }, []);
 
-  // build params object (memoized)
+  // read hostelId from URL and apply filter
+  useEffect(() => {
+    const hId = searchParams.get("hostelId");
+    if (hId) {
+      setSelectedHostel(hId);
+      setPage(1);
+    }
+  }, [searchParams]);
+
+  // keep URL in sync when selectedHostel changes
+  useEffect(() => {
+    const current = Object.fromEntries(searchParams.entries());
+    if (selectedHostel && selectedHostel !== "all") {
+      if (current.hostelId !== selectedHostel) {
+        setSearchParams({ ...current, hostelId: selectedHostel });
+      }
+    } else {
+      if (current.hostelId) {
+        const { hostelId, ...rest } = current;
+        setSearchParams(rest);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedHostel]);
+
   const params = useMemo(() => {
     return {
       q: searchQuery || undefined,
@@ -81,7 +109,7 @@ export default function Rooms() {
     page,
   ]);
 
-  // fetch with debounce for search + slider
+  // fetch (debounced on search/slider)
   useEffect(() => {
     const delay =
       searchQuery.length > 0 || priceRange[0] !== 0 || priceRange[1] !== 15000
