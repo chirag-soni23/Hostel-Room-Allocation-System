@@ -100,22 +100,23 @@ const html = `
       </p>
 
       <div style="margin-top:16px;">
-        <a href="https://www.instagram.com/" style="text-decoration:none; margin:0 6px;">
+        <a target="_blank" href="https://www.instagram.com/0x_chirag_0x/" style="text-decoration:none; margin:0 6px;">
           <img src="https://cdn-icons-png.flaticon.com/512/174/174855.png" alt="Instagram" width="22" height="22"/>
         </a>
-        <a href="https://facebook.com/" style="text-decoration:none; margin:0 6px;">
-          <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" width="22" height="22"/>
+        <a target="_blank" href="https://x.com/ChiragSoni23" style="text-decoration:none; margin:0 6px;">
+          <img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" alt="Twitter" width="22" height="22"/>
         </a>
-        <a href="https://linkedin.com/" style="text-decoration:none; margin:0 6px;">
+        <a target="_blank" href="https://www.linkedin.com/in/chiragsoni023/" style="text-decoration:none; margin:0 6px;">
           <img src="https://cdn-icons-png.flaticon.com/512/145/145807.png" alt="LinkedIn" width="22" height="22"/>
         </a>
-        <a href="https://github.com/" style="text-decoration:none; margin:0 6px;">
+        <a target="_blank" href="https://github.com/chirag-soni23/" style="text-decoration:none; margin:0 6px;">
           <img src="https://cdn-icons-png.flaticon.com/512/733/733553.png" alt="GitHub" width="22" height="22"/>
         </a>
       </div>
     </div>
   </div>
 `;
+
 
 
   return transporter.sendMail({

@@ -120,7 +120,7 @@ export const getHostels = async (req, res) => {
   }
 };
 
-/* -------------- Get by id -------------- */
+// get hostel by id
 export const getHostelById = async (req, res) => {
   try {
     const hostel = await Hostel.findById(req.params.id);
@@ -134,6 +134,7 @@ export const getHostelById = async (req, res) => {
   }
 };
 
+// update hostel
 export const updateHostel = async (req, res) => {
   try {
     if (!isAdmin(req.user)) {
@@ -180,7 +181,7 @@ export const updateHostel = async (req, res) => {
   }
 };
 
-/* -------------- Delete -------------- */
+// delete hostel
 export const deleteHostel = async (req, res) => {
   try {
     if (!isAdmin(req.user)) {
@@ -202,6 +203,7 @@ export const deleteHostel = async (req, res) => {
   }
 };
 
+// get cities
 export const getCities = async (_req, res) => {
   try {
     const cities = await Hostel.distinct("location");

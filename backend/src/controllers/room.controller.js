@@ -135,7 +135,6 @@ export const listRooms = async (req, res) => {
     const [sortField, sortOrder] = String(sort).split(":");
     const sortObj = { [sortField || "createdAt"]: sortOrder === "asc" ? 1 : -1 };
 
-    // Base match (exact filters)
     const match = {};
     if (type) match.type = type;
     if (gender) match.genderPreference = gender;
@@ -150,7 +149,6 @@ export const listRooms = async (req, res) => {
       if (maxRent) match.monthlyRent.$lte = Number(maxRent);
     }
 
-    // Search match (broad regex)
     let searchOr = null;
     if (q && String(q).trim()) {
       const r = new RegExp(esc(q), "i");
@@ -159,8 +157,8 @@ export const listRooms = async (req, res) => {
         { location: r },
         { type: r },
         { genderPreference: r },
-        { amenities: r }, // matches any amenity string
-        { "hostelDoc.name": r }, // via lookup
+        { amenities: r },
+        { "hostelDoc.name": r }, 
       ];
     }
 

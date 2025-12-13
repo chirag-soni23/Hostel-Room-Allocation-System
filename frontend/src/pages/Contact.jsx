@@ -15,6 +15,7 @@ import {
   Facebook,
   Linkedin,
   Github,
+  Twitter,
 } from "lucide-react";
 import api from "@/lib/axios";
 
@@ -51,7 +52,10 @@ export default function Contact() {
       }
     } catch (err) {
       console.error("Contact form error:", err);
-      toast.error(err?.response?.data?.message || "Something went wrong. Please try again.");
+      toast.error(
+        err?.response?.data?.message ||
+          "Something went wrong. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -129,16 +133,36 @@ export default function Contact() {
                   Follow Us
                 </div>
                 <div className="flex items-center gap-3">
-                  <a href="#" className="icon-btn" aria-label="Instagram">
+                  <a
+                    target="_blank"
+                    href="https://www.instagram.com/0x_chirag_0x/"
+                    className="icon-btn"
+                    aria-label="Instagram"
+                  >
                     <Instagram className="h-4 w-4" />
                   </a>
-                  <a href="#" className="icon-btn" aria-label="Facebook">
-                    <Facebook className="h-4 w-4" />
+                  <a
+                    target="_blank"
+                    href="https://x.com/ChiragSoni23/"
+                    className="icon-btn"
+                    aria-label="Facebook"
+                  >
+                    <Twitter className="h-4 w-4" />
                   </a>
-                  <a href="#" className="icon-btn" aria-label="LinkedIn">
+                  <a
+                    target="_blank"
+                    href="https://www.linkedin.com/in/chiragsoni023/"
+                    className="icon-btn"
+                    aria-label="LinkedIn"
+                  >
                     <Linkedin className="h-4 w-4" />
                   </a>
-                  <a href="#" className="icon-btn" aria-label="GitHub">
+                  <a
+                    target="_blank"
+                    href="https://github.com/chirag-soni23/"
+                    className="icon-btn"
+                    aria-label="GitHub"
+                  >
                     <Github className="h-4 w-4" />
                   </a>
                 </div>
