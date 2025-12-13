@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/axios";
 
-/* ---------- Portal Dropdown (fixes z-index + clipping) ---------- */
 function DropdownPortal({ anchorRef, open, children }) {
   const [style, setStyle] = useState({});
 
@@ -61,7 +60,7 @@ export function Hero() {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [loading, setLoading] = useState(false);
-  const [sugs, setSugs] = useState([]); // {_id, type, title, subtitle, hostelId?}
+  const [sugs, setSugs] = useState([]); 
 
   const inputRef = useRef(null);
   const abortRef = useRef(null);
@@ -76,7 +75,6 @@ export function Hero() {
     []
   );
 
-  // Debounced suggestions (rooms + hostels)
   useEffect(() => {
     if (debRef.current) clearTimeout(debRef.current);
     if (!query?.trim()) {
@@ -147,7 +145,6 @@ export function Hero() {
     return () => clearTimeout(debRef.current);
   }, [query]);
 
-  // Click-away to close (works with portal)
   useEffect(() => {
     const onClick = (e) => {
       const withinInput = inputRef.current?.contains(e.target);
@@ -166,10 +163,7 @@ export function Hero() {
     if (item.type === "hostel") {
       navigate(`/rooms?hostelId=${item._id}`);
     } else if (item.type === "room") {
-      // If deep route exists:
-      navigate(`/room/${item._id}`);
-      // Fallback list:
-      // navigate(`/rooms?hostelId=${item.hostelId || ""}&q=${encodeURIComponent(item.title)}`);
+      navigate(`/rooms/${item._id}`);
     }
     setOpen(false);
   };

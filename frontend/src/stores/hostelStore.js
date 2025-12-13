@@ -128,7 +128,7 @@ export const useHostelStore = create((set, get) => ({
         );
       if (payload.photoFile) form.append("photo", payload.photoFile);
 
-      const { data } = await api.put(`/hostel/${id}`, form);
+      const { data } = await api.patch(`/hostel/${id}`, form);
       toast.success(data.message || "Hostel updated");
       await get().fetchHostels();
       if (get().hostel?._id === id) {
