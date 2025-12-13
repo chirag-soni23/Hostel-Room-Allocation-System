@@ -110,40 +110,126 @@ export const createRoom = async (req, res) => {
 };
 
 // list rooms
+// list rooms with full-text style search (regex) including hostel name
 export const listRooms = async (req, res) => {
   try {
-    const { q, type, gender, hostelId, minRent, maxRent, page = 1, limit = 12, sort = "createdAt:desc" } = req.query;
+    const {
+      q,
+      type,
+      gender,
+      hostelId,
+      minRent,
+      maxRent,
+      available,
+      page = 1,
+      limit = 12,
+      sort = "createdAt:desc",
+    } = req.query;
 
-    const filter = {};
-    if (type) filter.type = type;
-    if (gender) filter.genderPreference = gender;
-    if (hostelId) filter.hostel = new mongoose.Types.ObjectId(hostelId);
-    if (minRent || maxRent) {
-      filter.monthlyRent = {};
-      if (minRent) filter.monthlyRent.$gte = Number(minRent);
-      if (maxRent) filter.monthlyRent.$lte = Number(maxRent);
-    }
-    if (q) {
-      const safe = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      filter.$or = [{ number: { $regex: safe, $options: "i" } }, { location: { $regex: safe, $options: "i" } }];
-    }
-
-    const [sortField, sortOrder] = String(sort).split(":");
-    const sortObj = { [sortField || "createdAt"]: sortOrder === "asc" ? 1 : -1 };
+    const esc = (s = "") => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const isValidId = (id) => mongoose.isValidObjectId(id);
 
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const limitNum = Math.min(Math.max(parseInt(limit, 10) || 12, 1), 100);
 
-    const [items, total] = await Promise.all([
-      Room.find(filter).populate("hostel", "name location").sort(sortObj).skip((pageNum - 1) * limitNum).limit(limitNum).lean(),
-      Room.countDocuments(filter),
-    ]);
+    const [sortField, sortOrder] = String(sort).split(":");
+    const sortObj = { [sortField || "createdAt"]: sortOrder === "asc" ? 1 : -1 };
 
-    res.json({ success: true, data: { items, total, page: pageNum, limit: limitNum } });
+    // Base match (exact filters)
+    const match = {};
+    if (type) match.type = type;
+    if (gender) match.genderPreference = gender;
+    if (hostelId && isValidId(hostelId)) match.hostel = new mongoose.Types.ObjectId(hostelId);
+    if (available !== undefined) {
+      const val = String(available).toLowerCase();
+      match.available = ["true", "1", "yes"].includes(val);
+    }
+    if (minRent || maxRent) {
+      match.monthlyRent = {};
+      if (minRent) match.monthlyRent.$gte = Number(minRent);
+      if (maxRent) match.monthlyRent.$lte = Number(maxRent);
+    }
+
+    // Search match (broad regex)
+    let searchOr = null;
+    if (q && String(q).trim()) {
+      const r = new RegExp(esc(q), "i");
+      searchOr = [
+        { number: r },
+        { location: r },
+        { type: r },
+        { genderPreference: r },
+        { amenities: r }, // matches any amenity string
+        { "hostelDoc.name": r }, // via lookup
+      ];
+    }
+
+    const pipeline = [
+      { $match: match },
+      {
+        $lookup: {
+          from: "hostels",
+          localField: "hostel",
+          foreignField: "_id",
+          as: "hostelDoc",
+          pipeline: [{ $project: { name: 1, location: 1 } }],
+        },
+      },
+      { $unwind: { path: "$hostelDoc", preserveNullAndEmptyArrays: true } },
+    ];
+
+    if (searchOr) pipeline.push({ $match: { $or: searchOr } });
+
+    pipeline.push(
+      { $sort: sortObj },
+      {
+        $facet: {
+          items: [
+            { $skip: (pageNum - 1) * limitNum },
+            { $limit: limitNum },
+            {
+              $project: {
+                number: 1,
+                type: 1,
+                genderPreference: 1,
+                monthlyRent: 1,
+                amenities: 1,
+                capacity: 1,
+                occupied: 1,
+                location: 1,
+                photos: 1,
+                isActive: 1,
+                available: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                hostel: "$hostel",
+                hostelDoc: 1,
+              },
+            },
+          ],
+          total: [{ $count: "count" }],
+        },
+      }
+    );
+
+    const result = await Room.aggregate(pipeline);
+    const items = (result[0]?.items || []).map((doc) => ({
+      ...doc,
+      hostel: doc.hostelDoc ? { _id: doc.hostel, name: doc.hostelDoc.name, location: doc.hostelDoc.location } : null,
+      hostelId: doc.hostel || null,
+    }));
+    const total = result[0]?.total?.[0]?.count || 0;
+
+    res.json({
+      success: true,
+      data: { items, total, page: pageNum, limit: limitNum },
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 // get rooms by id 
 export const getRoomById = async (req, res) => {

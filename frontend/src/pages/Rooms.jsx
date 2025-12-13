@@ -1,5 +1,12 @@
-import { useState, useEffect } from "react";
-import { Search, Filter, SlidersHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import {
+  Search,
+  Filter,
+  SlidersHorizontal,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 import { Layout } from "@/components/layout/Layout";
 import { RoomCard } from "@/components/cards/RoomCard";
@@ -42,16 +49,18 @@ export default function Rooms() {
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
 
   const [page, setPage] = useState(1);
-  const limit = 6; 
+  const limit = 6;
+
   const totalPages = Math.max(1, Math.ceil((total || rooms.length) / limit));
 
+  // initial load
   useEffect(() => {
     fetchHostels();
-    applyFilters();
   }, []);
 
-  const applyFilters = () => {
-    fetchRooms({
+  // build params object (memoized)
+  const params = useMemo(() => {
+    return {
       q: searchQuery || undefined,
       type: selectedType !== "all" ? selectedType : undefined,
       gender: selectedGender !== "all" ? selectedGender : undefined,
@@ -61,11 +70,7 @@ export default function Rooms() {
       available: showAvailableOnly || undefined,
       page,
       limit,
-    });
-  };
-
-  useEffect(() => {
-    applyFilters();
+    };
   }, [
     searchQuery,
     selectedType,
@@ -75,6 +80,20 @@ export default function Rooms() {
     showAvailableOnly,
     page,
   ]);
+
+  // fetch with debounce for search + slider
+  useEffect(() => {
+    const delay =
+      searchQuery.length > 0 || priceRange[0] !== 0 || priceRange[1] !== 15000
+        ? 300
+        : 0;
+
+    const t = setTimeout(() => {
+      fetchRooms(params);
+    }, delay);
+
+    return () => clearTimeout(t);
+  }, [params, fetchRooms, searchQuery, priceRange]);
 
   const activeFiltersCount = [
     selectedType !== "all",
@@ -104,7 +123,13 @@ export default function Rooms() {
       {/* Room Type */}
       <div>
         <label className="text-sm font-medium mb-2 block">Room Type</label>
-        <Select value={selectedType} onValueChange={setSelectedType}>
+        <Select
+          value={selectedType}
+          onValueChange={(v) => {
+            setPage(1);
+            setSelectedType(v);
+          }}
+        >
           <SelectTrigger>
             <SelectValue placeholder="All Types" />
           </SelectTrigger>
@@ -122,7 +147,13 @@ export default function Rooms() {
       {/* Gender */}
       <div>
         <label className="text-sm font-medium mb-2 block">Gender</label>
-        <Select value={selectedGender} onValueChange={setSelectedGender}>
+        <Select
+          value={selectedGender}
+          onValueChange={(v) => {
+            setPage(1);
+            setSelectedGender(v);
+          }}
+        >
           <SelectTrigger>
             <SelectValue placeholder="All" />
           </SelectTrigger>
@@ -140,7 +171,13 @@ export default function Rooms() {
       {/* Hostel */}
       <div>
         <label className="text-sm font-medium mb-2 block">Hostel</label>
-        <Select value={selectedHostel} onValueChange={setSelectedHostel}>
+        <Select
+          value={selectedHostel}
+          onValueChange={(v) => {
+            setPage(1);
+            setSelectedHostel(v);
+          }}
+        >
           <SelectTrigger>
             <SelectValue placeholder="All Hostels" />
           </SelectTrigger>
@@ -158,15 +195,26 @@ export default function Rooms() {
       {/* Price Range */}
       <div>
         <label className="text-sm font-medium mb-4 block">
-          Price: ₹{priceRange[0]} – ₹{priceRange[1]}
+          Price Range: ₹{priceRange[0].toLocaleString()} – ₹
+          {priceRange[1].toLocaleString()}
         </label>
         <Slider
-          value={priceRange}
-          onValueChange={setPriceRange}
           min={0}
           max={15000}
           step={500}
+          value={priceRange}
+          onValueChange={(val) => {
+            if (Array.isArray(val) && val.length === 2) {
+              setPage(1);
+              setPriceRange(val);
+            }
+          }}
+          className="mt-2"
         />
+        <div className="flex justify-between text-xs text-muted-foreground mt-1">
+          <span>₹0</span>
+          <span>₹15,000</span>
+        </div>
       </div>
 
       {/* Available Only */}
@@ -175,7 +223,10 @@ export default function Rooms() {
         <Button
           variant={showAvailableOnly ? "default" : "outline"}
           size="sm"
-          onClick={() => setShowAvailableOnly(!showAvailableOnly)}
+          onClick={() => {
+            setPage(1);
+            setShowAvailableOnly((p) => !p);
+          }}
         >
           {showAvailableOnly ? "On" : "Off"}
         </Button>
@@ -253,7 +304,7 @@ export default function Rooms() {
           {/* Room List */}
           <div className="flex-1">
             <p className="text-sm text-muted-foreground mb-4">
-              Showing {rooms.length} rooms
+              Showing {rooms.length} of {total} rooms
             </p>
 
             {loading ? (
@@ -262,7 +313,7 @@ export default function Rooms() {
               <>
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                   {rooms.map((room, idx) => (
-                    <RoomCard key={room._id} room={room} index={idx} />
+                    <RoomCard key={room._id || idx} room={room} index={idx} />
                   ))}
                 </div>
 

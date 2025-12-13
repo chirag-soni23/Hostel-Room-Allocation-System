@@ -55,8 +55,13 @@ export default function AddRoom() {
   const [preview, setPreview] = useState(null);
   const fileRef = useRef(null);
 
+  // ---------- SEARCH + FILTER STATES ----------
   const [q, setQ] = useState("");
-  const [city, setCity] = useState("");
+  const [hostelFilter, setHostelFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [genderFilter, setGenderFilter] = useState("all");
+  const [availableOnly, setAvailableOnly] = useState(false);
+
   const [page, setPage] = useState(1);
   const limit = 6;
 
@@ -65,23 +70,26 @@ export default function AddRoom() {
     fetchHostels();
   }, []);
 
-  // Fetch rooms on mount
+  // Initial rooms
   useEffect(() => {
     fetchRooms({ page, limit });
   }, []);
 
-  // Fetch rooms when filters or page change
+  // Debounced fetch when filters/search/page change
   useEffect(() => {
     const t = setTimeout(() => {
       fetchRooms({
         q: q || undefined,
-        city: city || undefined,
+        hostelId: hostelFilter !== "all" ? hostelFilter : undefined,
+        type: typeFilter !== "all" ? typeFilter : undefined,
+        gender: genderFilter !== "all" ? genderFilter : undefined,
+        available: availableOnly || undefined,
         page,
         limit,
       });
     }, 300);
     return () => clearTimeout(t);
-  }, [q, city, page]);
+  }, [q, hostelFilter, typeFilter, genderFilter, availableOnly, page]);
 
   // Fetch selected room for editing
   useEffect(() => {
@@ -163,7 +171,15 @@ export default function AddRoom() {
         await createRoom(formData);
       }
       resetForm();
-      fetchRooms({ q, city, page, limit });
+      fetchRooms({
+        q,
+        hostelId: hostelFilter !== "all" ? hostelFilter : undefined,
+        type: typeFilter !== "all" ? typeFilter : undefined,
+        gender: genderFilter !== "all" ? genderFilter : undefined,
+        available: availableOnly || undefined,
+        page,
+        limit,
+      });
     } catch (err) {
       console.error(err);
     }
@@ -172,7 +188,15 @@ export default function AddRoom() {
   const onDelete = async (id) => {
     if (window.confirm("Delete this room permanently?")) {
       await deleteRoom(id);
-      fetchRooms({ q, city, page, limit });
+      fetchRooms({
+        q,
+        hostelId: hostelFilter !== "all" ? hostelFilter : undefined,
+        type: typeFilter !== "all" ? typeFilter : undefined,
+        gender: genderFilter !== "all" ? genderFilter : undefined,
+        available: availableOnly || undefined,
+        page,
+        limit,
+      });
       if (selectedId === id) {
         setSelectedId(null);
         resetForm();
@@ -187,6 +211,21 @@ export default function AddRoom() {
     if (p < 1 || p > totalPages) return;
     setPage(p);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const activeFilters =
+    (hostelFilter !== "all") +
+    (typeFilter !== "all") +
+    (genderFilter !== "all") +
+    (availableOnly ? 1 : 0);
+
+  const clearFilters = () => {
+    setQ("");
+    setHostelFilter("all");
+    setTypeFilter("all");
+    setGenderFilter("all");
+    setAvailableOnly(false);
+    setPage(1);
   };
 
   return (
@@ -406,27 +445,108 @@ export default function AddRoom() {
           <div className="lg:col-span-7">
             {/* Filters */}
             <div className="glass-card p-4 mb-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search rooms..."
-                    className="pl-10"
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                  />
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by room number, location, hostel name..."
+                      className="pl-10"
+                      value={q}
+                      onChange={(e) => {
+                        setPage(1);
+                        setQ(e.target.value);
+                      }}
+                    />
+                  </div>
+
+                  <select
+                    className="border rounded px-3 py-2 bg-muted text-muted-foreground dark:bg-gray-800 dark:text-white"
+                    value={hostelFilter}
+                    onChange={(e) => {
+                      setPage(1);
+                      setHostelFilter(e.target.value);
+                    }}
+                  >
+                    <option value="all">All Hostels</option>
+                    {hostels.map((h) => (
+                      <option key={h._id} value={h._id}>
+                        {h.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="border rounded px-3 py-2 bg-muted text-muted-foreground dark:bg-gray-800 dark:text-white"
+                    value={typeFilter}
+                    onChange={(e) => {
+                      setPage(1);
+                      setTypeFilter(e.target.value);
+                    }}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="single">Single</option>
+                    <option value="double">Double</option>
+                    <option value="triple">Triple</option>
+                  </select>
+
+                  <select
+                    className="border rounded px-3 py-2 bg-muted text-muted-foreground dark:bg-gray-800 dark:text-white"
+                    value={genderFilter}
+                    onChange={(e) => {
+                      setPage(1);
+                      setGenderFilter(e.target.value);
+                    }}
+                  >
+                    <option value="all">All Genders</option>
+                    <option value="any">Any</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
                 </div>
-                <Input
-                  placeholder="Filter by city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => fetchRooms({ q, city, page, limit })}
-                >
-                  <RefreshCcw className="h-4 w-4 mr-2" /> Refresh
-                </Button>
+
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant={availableOnly ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setPage(1);
+                      setAvailableOnly((s) => !s);
+                    }}
+                  >
+                    {availableOnly ? "Available: On" : "Available: Off"}
+                  </Button>
+
+                  {activeFilters > 0 && (
+                    <Badge variant="secondary">{activeFilters} active</Badge>
+                  )}
+
+                  <div className="ml-auto flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        fetchRooms({
+                          q,
+                          hostelId:
+                            hostelFilter !== "all" ? hostelFilter : undefined,
+                          type: typeFilter !== "all" ? typeFilter : undefined,
+                          gender:
+                            genderFilter !== "all" ? genderFilter : undefined,
+                          available: availableOnly || undefined,
+                          page,
+                          limit,
+                        })
+                      }
+                    >
+                      <RefreshCcw className="h-4 w-4 mr-2" /> Refresh
+                    </Button>
+                    {activeFilters > 0 && (
+                      <Button variant="ghost" onClick={clearFilters}>
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
