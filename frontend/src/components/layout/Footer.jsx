@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
-import { Building2, Mail, Phone, MapPin } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { Building2, Mail, Phone, MapPin } from "lucide-react";
 
 export function Footer() {
   return (
@@ -56,28 +56,28 @@ export function Footer() {
             <h3 className="font-display font-semibold">Support</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a
-                  href="#"
+                <Link
+                  to={"/contact"}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Help Center
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  to={"/terms-services"}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Terms of Service
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  to={"/privacy-policy"}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Privacy Policy
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -104,7 +104,9 @@ export function Footer() {
 
         {/* Bottom Footer */}
         <div className="mt-12 pt-8 border-t border-border text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} HostelHub. All rights reserved.</p>
+          <p>
+            &copy; {new Date().getFullYear()} HostelHub. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

@@ -10,6 +10,8 @@ import FullscreenSpinner from "./hoc/FullscreenSpinner";
 import AddHostel from "./pages/admin/AddHostel";
 import AddRoom from "./pages/admin/AddRoom";
 import Contact from "./pages/Contact";
+import TermsOfService from "./instruction/TermsOfService";
+import PrivacyPolicy from "./instruction/PrivacyPolicy";
 
 const Index = lazy(() => import("./pages/Index"));
 const Hostels = lazy(() => import("./pages/Hostels"));
@@ -65,6 +67,8 @@ const App = () => {
             <Route path="/hostels" element={<Hostels />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/rooms" element={<Rooms />} />
+            <Route path="/terms-services" element={<TermsOfService />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/rooms/:roomId" element={<RoomDetail />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />
             <Route path="/payment/failure" element={<PaymentFailure />} />
