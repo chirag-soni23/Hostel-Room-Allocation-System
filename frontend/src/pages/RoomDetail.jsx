@@ -7,7 +7,7 @@ import {
   Bed,
   IndianRupee,
   Check,
-  Calendar,
+  Calendar as CalIcon,
   ArrowLeft,
   Wifi,
   Shield,
@@ -18,14 +18,44 @@ import {
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 import { useAuthStore } from "@/stores/authStore";
 import { useBookingStore } from "@/stores/bookingStore";
 import { useRoomStore } from "@/stores/roomStore";
+
+function startOfToday() {
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  return t;
+}
+function isBeforeTodayDate(d) {
+  if (!d) return false;
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x < startOfToday();
+}
+function formatISODateOnly(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 export default function RoomDetail() {
   const { roomId } = useParams();
@@ -42,17 +72,21 @@ export default function RoomDetail() {
   } = useBookingStore();
   const { room, fetchRoomById, loading } = useRoomStore();
 
-  const [checkInDate, setCheckInDate] = useState("");
+  const [checkInDate, setCheckInDate] = useState(null);
   const [months, setMonths] = useState("1");
 
   useEffect(() => {
     if (roomId) fetchRoomById(roomId);
   }, [roomId, fetchRoomById]);
 
-  // fetch user's confirmed bookings (to detect already-paid room)
   useEffect(() => {
     if (isAuth) {
-      getMyBookings({ status: "confirmed", page: 1, limit: 50, sort: "createdAt:desc" }).catch(() => {});
+      getMyBookings({
+        status: "confirmed",
+        page: 1,
+        limit: 50,
+        sort: "createdAt:desc",
+      }).catch(() => {});
     }
   }, [isAuth, getMyBookings]);
 
@@ -64,7 +98,6 @@ export default function RoomDetail() {
 
   const isAvailable = Boolean(availableSpots > 0 && room?.isActive);
 
-  // is this room already paid (confirmed) by current user?
   const isPaid = useMemo(() => {
     if (!room?._id || !Array.isArray(bookings)) return false;
     return bookings.some(
@@ -81,6 +114,14 @@ export default function RoomDetail() {
 
   const handleBookNow = async () => {
     try {
+      if (!checkInDate) {
+        toast.error("Please select a check-in date");
+        return;
+      }
+      if (isBeforeTodayDate(checkInDate)) {
+        toast.error("Please select today or a future date");
+        return;
+      }
       if (isPaid) {
         toast.info("You already paid for this room.");
         return;
@@ -90,18 +131,16 @@ export default function RoomDetail() {
         navigate("/login");
         return;
       }
-      if (!checkInDate) {
-        toast.error("Please select a check-in date");
-        return;
-      }
       if (!isAvailable) {
         toast.error("Room is not available");
         return;
       }
 
+      const checkInISO = formatISODateOnly(checkInDate);
+
       setRoom(room);
       setDraft({
-        checkInDate,
+        checkInDate: checkInISO,
         months: Number(months),
         totalAmount,
       });
@@ -109,14 +148,12 @@ export default function RoomDetail() {
       const created = await createBooking({
         roomId: room._id,
         hostelId: room.hostelId || room.hostel?._id,
-        checkInDate,
+        checkInDate: checkInISO,
         durationMonths: Number(months),
       });
 
       navigate(`/checkout/${created._id}`);
-    } catch {
-      // errors toasted in store
-    }
+    } catch {}
   };
 
   if (loading) {
@@ -149,24 +186,34 @@ export default function RoomDetail() {
         </Button>
 
         <div className="grid gap-8 lg:grid-cols-3">
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Image Card */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card overflow-hidden">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="glass-card overflow-hidden"
+            >
               <div className="relative aspect-[16/9]">
                 <img
-                  src={room?.photos?.[0] || "https://images.unsplash.com/photo-1631049307264-da0ec9d70304"}
+                  src={
+                    room?.photos?.[0] ||
+                    "https://images.unsplash.com/photo-1631049307264-da0ec9d70304"
+                  }
                   alt={`Room ${room.number}`}
                   className="w-full h-full object-cover"
                 />
-
                 <div className="absolute top-4 left-4 flex gap-2">
-                  <Badge variant={isAvailable ? "default" : "secondary"} className={isAvailable ? "bg-success" : "bg-destructive"}>
+                  <Badge
+                    variant={isAvailable ? "default" : "secondary"}
+                    className={isAvailable ? "bg-success" : "bg-destructive"}
+                  >
                     {isAvailable ? "Available" : "Full"}
                   </Badge>
                   <Badge variant="secondary">{room.type}</Badge>
                   {isPaid && (
-                    <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                    <Badge
+                      variant="secondary"
+                      className="bg-primary text-primary-foreground"
+                    >
                       PAID
                     </Badge>
                   )}
@@ -174,7 +221,6 @@ export default function RoomDetail() {
               </div>
             </motion.div>
 
-            {/* Room Info */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -182,7 +228,9 @@ export default function RoomDetail() {
               className="glass-card p-6 space-y-6"
             >
               <div>
-                <h1 className="text-2xl sm:text-3xl font-display font-bold">Room {room.number}</h1>
+                <h1 className="text-2xl sm:text-3xl font-display font-bold">
+                  Room {room.number}
+                </h1>
                 <p className="text-muted-foreground flex items-center gap-2 mt-2">
                   <MapPin className="h-4 w-4" />
                   {room.location}
@@ -217,10 +265,20 @@ export default function RoomDetail() {
                   <h3 className="font-semibold mb-3">Amenities</h3>
                   <div className="flex flex-wrap gap-2">
                     {room.amenities.map((a) => (
-                      <Badge key={a} variant="outline" className="flex items-center gap-1.5">
-                        {a.toLowerCase().includes("wifi") && <Wifi className="h-3 w-3" />}
-                        {a.toLowerCase().includes("security") && <Shield className="h-3 w-3" />}
-                        {a.toLowerCase().includes("parking") && <Car className="h-3 w-3" />}
+                      <Badge
+                        key={a}
+                        variant="outline"
+                        className="flex items-center gap-1.5"
+                      >
+                        {a.toLowerCase().includes("wifi") && (
+                          <Wifi className="h-3 w-3" />
+                        )}
+                        {a.toLowerCase().includes("security") && (
+                          <Shield className="h-3 w-3" />
+                        )}
+                        {a.toLowerCase().includes("parking") && (
+                          <Car className="h-3 w-3" />
+                        )}
                         {a}
                       </Badge>
                     ))}
@@ -230,8 +288,12 @@ export default function RoomDetail() {
             </motion.div>
           </div>
 
-          {/* Booking Card */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="lg:sticky lg:top-24 h-fit">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:sticky lg:top-24 h-fit"
+          >
             <div className="glass-card p-6 space-y-6">
               <div className="flex items-end justify-between">
                 <div>
@@ -247,20 +309,49 @@ export default function RoomDetail() {
               <div className="space-y-4">
                 <div>
                   <Label>Check-in Date</Label>
-                  <Input
-                    type="date"
-                    value={checkInDate}
-                    onChange={(e) => setCheckInDate(e.target.value)}
-                    min={new Date().toISOString().split("T")[0]}
-                    className="mt-1.5"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "mt-1.5 w-full justify-start text-left font-normal",
+                          !checkInDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalIcon className="mr-2 h-4 w-4" />
+                        {checkInDate
+                          ? checkInDate.toLocaleDateString("en-IN", {
+                              day: "2-digit",
+                              month: "long",
+                              year: "numeric",
+                            })
+                          : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={checkInDate ?? undefined}
+                        onSelect={(d) => {
+                          if (!d) return;
+                          if (isBeforeTodayDate(d)) {
+                            toast.error("Please select today or a future date");
+                            return;
+                          }
+                          setCheckInDate(d);
+                        }}
+                        disabled={(date) => date < startOfToday()}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <div>
                   <Label>Duration</Label>
                   <Select value={months} onValueChange={setMonths}>
                     <SelectTrigger className="mt-1.5">
-                      <Calendar className="h-4 w-4 mr-2" />
+                      <CalIcon className="h-4 w-4 mr-2" />
                       <SelectValue placeholder="Select months" />
                     </SelectTrigger>
                     <SelectContent>
@@ -306,7 +397,9 @@ export default function RoomDetail() {
                 )}
               </Button>
 
-              <p className="text-xs text-center text-muted-foreground">Secure payment powered by Razorpay</p>
+              <p className="text-xs text-center text-muted-foreground">
+                Secure payment powered by Razorpay
+              </p>
             </div>
           </motion.div>
         </div>

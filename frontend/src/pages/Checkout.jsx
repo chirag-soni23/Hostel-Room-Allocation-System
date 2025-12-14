@@ -84,31 +84,36 @@ export default function Checkout() {
         name: hostelName || "Hostel Booking",
         description: `Room ${roomNumber} • ${months} month(s)`,
         order_id: order.orderId,
-        handler: async function (response) {
-          try {
-            const {
-              razorpay_payment_id,
-              razorpay_order_id,
-              razorpay_signature,
-            } = response;
 
-            await verifyPayment({
-              razorpay_order_id,
-              razorpay_payment_id,
-              razorpay_signature,
+        handler: function (response) {
+          const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
+            response;
+
+          navigate(
+            `/payment/success?orderId=${encodeURIComponent(
+              razorpay_order_id
+            )}&paymentId=${encodeURIComponent(
+              razorpay_payment_id
+            )}&verifying=1`,
+            { replace: true }
+          );
+
+          verifyPayment({
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature,
+          })
+            .then(() => {})
+            .catch(() => {
+              navigate(
+                `/payment/failure?orderId=${encodeURIComponent(
+                  razorpay_order_id
+                )}`,
+                { replace: true }
+              );
             });
-
-            navigate(
-              `/payment/success?orderId=${encodeURIComponent(
-                razorpay_order_id
-              )}&paymentId=${encodeURIComponent(razorpay_payment_id)}`
-            );
-          } catch (e) {
-            navigate(
-              `/payment/failure?orderId=${encodeURIComponent(order.orderId)}`
-            );
-          }
         },
+
         modal: {
           ondismiss: function () {
             toast.message("Payment cancelled");
@@ -121,7 +126,10 @@ export default function Checkout() {
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", () => {
         navigate(
-          `/payment/failure?orderId=${encodeURIComponent(order.orderId)}`
+          `/payment/failure?orderId=${encodeURIComponent(order.orderId)}`,
+          {
+            replace: true,
+          }
         );
       });
       rzp.open();
