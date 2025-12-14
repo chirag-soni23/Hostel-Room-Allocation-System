@@ -1,13 +1,7 @@
-// Rooms.jsx
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
-  Search,
-  Filter,
-  SlidersHorizontal,
-  X,
-  ChevronLeft,
-  ChevronRight,
+  Search, Filter, SlidersHorizontal, X, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 import { Layout } from "@/components/layout/Layout";
@@ -16,25 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
-
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 import { useHostelStore } from "@/stores/hostelStore";
 import { useRoomStore } from "@/stores/roomStore";
+import { useBookingStore } from "@/stores/bookingStore";
+import { useAuthStore } from "@/stores/authStore";
 
 const roomTypes = ["single", "double", "triple"];
 const genderOptions = ["male", "female", "any"];
@@ -42,6 +24,8 @@ const genderOptions = ["male", "female", "any"];
 export default function Rooms() {
   const { hostels, fetchHostels } = useHostelStore();
   const { rooms, fetchRooms, loading, total } = useRoomStore();
+  const { getMyBookings } = useBookingStore();
+  const { isAuth } = useAuthStore();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -55,14 +39,26 @@ export default function Rooms() {
   const [page, setPage] = useState(1);
   const limit = 6;
 
+  const [paidRoomIds, setPaidRoomIds] = useState(() => new Set());
+
   const totalPages = Math.max(1, Math.ceil((total || rooms.length) / limit));
 
-  // load hostels once
   useEffect(() => {
     fetchHostels();
-  }, []);
+  }, [fetchHostels]);
 
-  // read hostelId from URL and apply filter
+  useEffect(() => {
+    (async () => {
+      if (!isAuth) {
+        setPaidRoomIds(new Set());
+        return;
+      }
+      const resp = await getMyBookings({ status: "confirmed", page: 1, limit: 200 });
+      const ids = new Set((resp?.items || []).map(b => String(b.room?._id || b.room)));
+      setPaidRoomIds(ids);
+    })().catch(() => {});
+  }, [isAuth, getMyBookings]);
+
   useEffect(() => {
     const hId = searchParams.get("hostelId");
     if (hId) {
@@ -71,24 +67,20 @@ export default function Rooms() {
     }
   }, [searchParams]);
 
-  // keep URL in sync when selectedHostel changes
   useEffect(() => {
     const current = Object.fromEntries(searchParams.entries());
     if (selectedHostel && selectedHostel !== "all") {
       if (current.hostelId !== selectedHostel) {
         setSearchParams({ ...current, hostelId: selectedHostel });
       }
-    } else {
-      if (current.hostelId) {
-        const { hostelId, ...rest } = current;
-        setSearchParams(rest);
-      }
+    } else if (current.hostelId) {
+      const { hostelId, ...rest } = current;
+      setSearchParams(rest);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedHostel]);
 
-  const params = useMemo(() => {
-    return {
+  const params = useMemo(
+    () => ({
       q: searchQuery || undefined,
       type: selectedType !== "all" ? selectedType : undefined,
       gender: selectedGender !== "all" ? selectedGender : undefined,
@@ -98,28 +90,18 @@ export default function Rooms() {
       available: showAvailableOnly || undefined,
       page,
       limit,
-    };
-  }, [
-    searchQuery,
-    selectedType,
-    selectedGender,
-    selectedHostel,
-    priceRange,
-    showAvailableOnly,
-    page,
-  ]);
+    }),
+    [searchQuery, selectedType, selectedGender, selectedHostel, priceRange, showAvailableOnly, page]
+  );
 
-  // fetch (debounced on search/slider)
   useEffect(() => {
     const delay =
       searchQuery.length > 0 || priceRange[0] !== 0 || priceRange[1] !== 15000
         ? 300
         : 0;
-
     const t = setTimeout(() => {
       fetchRooms(params);
     }, delay);
-
     return () => clearTimeout(t);
   }, [params, fetchRooms, searchQuery, priceRange]);
 
@@ -148,15 +130,11 @@ export default function Rooms() {
 
   const FiltersContent = () => (
     <div className="space-y-6">
-      {/* Room Type */}
       <div>
         <label className="text-sm font-medium mb-2 block">Room Type</label>
         <Select
           value={selectedType}
-          onValueChange={(v) => {
-            setPage(1);
-            setSelectedType(v);
-          }}
+          onValueChange={(v) => { setPage(1); setSelectedType(v); }}
         >
           <SelectTrigger>
             <SelectValue placeholder="All Types" />
@@ -164,23 +142,17 @@ export default function Rooms() {
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
             {roomTypes.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type.toUpperCase()}
-              </SelectItem>
+              <SelectItem key={type} value={type}>{type.toUpperCase()}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Gender */}
       <div>
         <label className="text-sm font-medium mb-2 block">Gender</label>
         <Select
           value={selectedGender}
-          onValueChange={(v) => {
-            setPage(1);
-            setSelectedGender(v);
-          }}
+          onValueChange={(v) => { setPage(1); setSelectedGender(v); }}
         >
           <SelectTrigger>
             <SelectValue placeholder="All" />
@@ -188,23 +160,17 @@ export default function Rooms() {
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             {genderOptions.map((gender) => (
-              <SelectItem key={gender} value={gender}>
-                {gender.toUpperCase()}
-              </SelectItem>
+              <SelectItem key={gender} value={gender}>{gender.toUpperCase()}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Hostel */}
       <div>
         <label className="text-sm font-medium mb-2 block">Hostel</label>
         <Select
           value={selectedHostel}
-          onValueChange={(v) => {
-            setPage(1);
-            setSelectedHostel(v);
-          }}
+          onValueChange={(v) => { setPage(1); setSelectedHostel(v); }}
         >
           <SelectTrigger>
             <SelectValue placeholder="All Hostels" />
@@ -212,19 +178,15 @@ export default function Rooms() {
           <SelectContent>
             <SelectItem value="all">All Hostels</SelectItem>
             {hostels?.map((hostel) => (
-              <SelectItem key={hostel._id} value={hostel._id}>
-                {hostel.name}
-              </SelectItem>
+              <SelectItem key={hostel._id} value={hostel._id}>{hostel.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Price Range */}
       <div>
         <label className="text-sm font-medium mb-4 block">
-          Price Range: ₹{priceRange[0].toLocaleString()} – ₹
-          {priceRange[1].toLocaleString()}
+          Price Range: ₹{priceRange[0].toLocaleString()} – ₹{priceRange[1].toLocaleString()}
         </label>
         <Slider
           min={0}
@@ -240,21 +202,16 @@ export default function Rooms() {
           className="mt-2"
         />
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>₹0</span>
-          <span>₹15,000</span>
+          <span>₹0</span><span>₹15,000</span>
         </div>
       </div>
 
-      {/* Available Only */}
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium">Available Only</label>
         <Button
           variant={showAvailableOnly ? "default" : "outline"}
           size="sm"
-          onClick={() => {
-            setPage(1);
-            setShowAvailableOnly((p) => !p);
-          }}
+          onClick={() => { setPage(1); setShowAvailableOnly((p) => !p); }}
         >
           {showAvailableOnly ? "On" : "Off"}
         </Button>
@@ -273,7 +230,6 @@ export default function Rooms() {
       <div className="container mx-auto px-4 py-12">
         <h1 className="text-3xl sm:text-4xl font-bold mb-3">Browse Rooms</h1>
 
-        {/* Search */}
         <div className="flex gap-3 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -281,15 +237,11 @@ export default function Rooms() {
               type="text"
               placeholder="Search rooms or hostels..."
               value={searchQuery}
-              onChange={(e) => {
-                setPage(1);
-                setSearchQuery(e.target.value);
-              }}
+              onChange={(e) => { setPage(1); setSearchQuery(e.target.value); }}
               className="pl-10"
             />
           </div>
 
-          {/* Mobile Filters */}
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="outline" className="lg:hidden">
@@ -303,18 +255,13 @@ export default function Rooms() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
-              <SheetHeader>
-                <SheetTitle>Filters</SheetTitle>
-              </SheetHeader>
-              <div className="mt-6">
-                <FiltersContent />
-              </div>
+              <SheetHeader><SheetTitle>Filters</SheetTitle></SheetHeader>
+              <div className="mt-6"><FiltersContent /></div>
             </SheetContent>
           </Sheet>
         </div>
 
         <div className="flex gap-8">
-          {/* Desktop Filters */}
           <aside className="hidden lg:block w-72">
             <div className="glass-card p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
@@ -329,7 +276,6 @@ export default function Rooms() {
             </div>
           </aside>
 
-          {/* Room List */}
           <div className="flex-1">
             <p className="text-sm text-muted-foreground mb-4">
               Showing {rooms.length} of {total} rooms
@@ -341,21 +287,19 @@ export default function Rooms() {
               <>
                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                   {rooms.map((room, idx) => (
-                    <RoomCard key={room._id || idx} room={room} index={idx} />
+                    <RoomCard
+                      key={room._id || idx}
+                      room={room}
+                      index={idx}
+                      isPaid={paidRoomIds.has(String(room._id))}
+                    />
                   ))}
                 </div>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="flex items-center justify-center gap-2 mt-8">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => gotoPage(page - 1)}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Prev
+                    <Button variant="outline" size="sm" onClick={() => gotoPage(page - 1)} disabled={page === 1}>
+                      <ChevronLeft className="h-4 w-4 mr-1" /> Prev
                     </Button>
 
                     {Array.from({ length: totalPages }).map((_, i) => {
@@ -372,14 +316,8 @@ export default function Rooms() {
                       );
                     })}
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => gotoPage(page + 1)}
-                      disabled={page === totalPages}
-                    >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                    <Button variant="outline" size="sm" onClick={() => gotoPage(page + 1)} disabled={page === totalPages}>
+                      Next <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
                   </div>
                 )}

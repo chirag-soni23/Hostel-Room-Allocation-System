@@ -69,14 +69,13 @@ export const createBooking = async (req, res) => {
 
     // fetch populated after commit (no session)
     const doc = await Booking.findById(createdId)
-      .populate("user", "firstName lastName email")
+      .populate("user", "firstName lastName email phone")
       .populate("hostel", "name location")
       .populate("room", "number type genderPreference monthlyRent")
       .lean();
 
     return res.status(201).json({ success: true, data: doc });
   } catch (err) {
-    // map custom errors to http responses
     const map = {
       ROOM_NOT_FOUND: [404, "Room not found"],
       HOSTEL_NOT_FOUND: [404, "Hostel not found"],
@@ -92,7 +91,7 @@ export const createBooking = async (req, res) => {
   }
 };
 
-// get my bookings
+// get my bookings (user list) — phone ki zarurat nahi hoti yahan
 export const getMyBookings = async (req, res) => {
   try {
     const { status, page = 1, limit = 12, sort = "createdAt:desc" } = req.query;
@@ -127,11 +126,11 @@ export const getMyBookings = async (req, res) => {
   }
 };
 
-// get booking by id
+// get booking by id — ✅ phone included
 export const getBookingById = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
-      .populate("user", "firstName lastName email")
+      .populate("user", "firstName lastName email phone")
       .populate("hostel", "name location")
       .populate("room", "number type genderPreference monthlyRent")
       .lean();
@@ -191,7 +190,7 @@ const statusSchema = Joi.object({
     .required(),
 });
 
-// update booking status
+// update booking status — ✅ phone included
 export const updateBookingStatus = async (req, res) => {
   try {
     if (!isAdmin(req.user))
@@ -210,7 +209,7 @@ export const updateBookingStatus = async (req, res) => {
       { status: value.status },
       { new: true, runValidators: true }
     )
-      .populate("user", "firstName lastName email")
+      .populate("user", "firstName lastName email phone")
       .populate("hostel", "name location")
       .populate("room", "number type genderPreference monthlyRent");
 
@@ -225,7 +224,7 @@ export const updateBookingStatus = async (req, res) => {
   }
 };
 
-// list booking
+// list bookings — ✅ include phone in $lookup → $project
 export const listBookings = async (req, res) => {
   try {
     if (!isAdmin(req.user))
@@ -267,7 +266,9 @@ export const listBookings = async (req, res) => {
           localField: "user",
           foreignField: "_id",
           as: "userDoc",
-          pipeline: [{ $project: { firstName: 1, lastName: 1, email: 1 } }],
+          pipeline: [
+            { $project: { firstName: 1, lastName: 1, name: 1, email: 1, phone: 1 } }
+          ],
         },
       },
       {
@@ -300,7 +301,9 @@ export const listBookings = async (req, res) => {
           $or: [
             { "userDoc.firstName": r },
             { "userDoc.lastName": r },
+            { "userDoc.name": r },
             { "userDoc.email": r },
+            { "userDoc.phone": r }, // optional phone search
             { "hostelDoc.name": r },
           ],
         },

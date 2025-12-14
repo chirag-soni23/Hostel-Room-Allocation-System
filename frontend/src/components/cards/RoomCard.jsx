@@ -1,3 +1,4 @@
+// src/components/cards/RoomCard.jsx
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Users, Bed, IndianRupee, MapPin, Check, X } from 'lucide-react';
@@ -5,10 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-export function RoomCard({ room, index = 0 }) {
-  const availableSpots = (room.capacity || 0) - (room.occupied || 0);
-
-  const isAvailable = room.available && availableSpots > 0;
+export function RoomCard({ room, index = 0, isPaid = false }) {
+  const availableSpots = Math.max((room.capacity || 0) - (room.occupied || 0), 0);
+  const isAvailable = Boolean(room.available && availableSpots > 0);
 
   return (
     <motion.div
@@ -35,17 +35,18 @@ export function RoomCard({ room, index = 0 }) {
               isAvailable ? 'bg-success/90 hover:bg-success' : 'bg-destructive/90'
             )}
           >
-            {isAvailable ? (
-              <Check className="h-3 w-3 mr-1" />
-            ) : (
-              <X className="h-3 w-3 mr-1" />
-            )}
+            {isAvailable ? <Check className="h-3 w-3 mr-1" /> : <X className="h-3 w-3 mr-1" />}
             {isAvailable ? 'Available' : 'Full'}
           </Badge>
 
           <Badge variant="secondary" className="bg-background/90 backdrop-blur-sm">
             {room.type}
           </Badge>
+
+          {/* NEW: Paid tag */}
+          {isPaid && (
+            <Badge className="bg-primary text-primary-foreground">PAID</Badge>
+          )}
         </div>
 
         <div className="absolute top-3 right-3">
@@ -101,7 +102,8 @@ export function RoomCard({ room, index = 0 }) {
             <Link to={`/rooms/${room._id}`}>View Details</Link>
           </Button>
 
-          {isAvailable && (
+          {/* Book Now hide when paid */}
+          {!isPaid && isAvailable && (
             <Button variant="default" className="flex-1" asChild>
               <Link to={`/rooms/${room._id}`}>Book Now</Link>
             </Button>
