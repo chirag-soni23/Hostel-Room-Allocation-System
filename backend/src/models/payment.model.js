@@ -14,7 +14,7 @@ const paymentSchema = new mongoose.Schema(
     capturedAt: { type: Date },
     notes: { type: Map, of: String },
   },
-  { timestamps: true } // <-- Yahin rakho; `_id: false` bilkul nahi
+  { timestamps: true } 
 );
 
 export const Payment = mongoose.model("Payment", paymentSchema);
