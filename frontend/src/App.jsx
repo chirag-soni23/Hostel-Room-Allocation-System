@@ -48,7 +48,6 @@ const App = () => {
   const { init } = useAuthStore();
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
     init?.();
   }, [init]);
 

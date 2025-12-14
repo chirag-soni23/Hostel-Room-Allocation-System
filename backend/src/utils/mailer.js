@@ -6,12 +6,18 @@ export const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS, 
+    pass: process.env.SMTP_PASS,
   },
 });
 
-export const sendMail = async ({ fromName, fromEmail, subject, message, phone }) => {
-const html = `
+export const sendMail = async ({
+  fromName,
+  fromEmail,
+  subject,
+  message,
+  phone,
+}) => {
+  const html = `
   <div style="
     font-family: 'Poppins', 'Segoe UI', Roboto, sans-serif;
     background: linear-gradient(135deg, #eef2ff, #f8fafc);
@@ -117,11 +123,9 @@ const html = `
   </div>
 `;
 
-
-
   return transporter.sendMail({
     from: `"${fromName}" <${fromEmail}>`,
-    to: process.env.RECEIVER_EMAIL || process.env.SMTP_USER, 
+    to: process.env.RECEIVER_EMAIL || process.env.SMTP_USER,
     subject: subject || "New Contact Form Message",
     html,
   });

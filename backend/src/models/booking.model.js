@@ -40,7 +40,7 @@ const bookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-bookingSchema.pre("validate", function (next) {
+bookingSchema.pre("validate", function () {
   if (this.checkInDate && this.durationMonths) {
     const d = new Date(this.checkInDate);
     const out = new Date(d);
@@ -51,7 +51,6 @@ bookingSchema.pre("validate", function (next) {
   if (this.monthlyRentSnapshot && this.durationMonths) {
     this.totalAmount = this.monthlyRentSnapshot * this.durationMonths;
   }
-  next();
 });
 
 bookingSchema.post("save", async function (doc, next) {
