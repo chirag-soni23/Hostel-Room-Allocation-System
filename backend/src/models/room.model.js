@@ -44,7 +44,7 @@ roomSchema.virtual("availableSpots").get(function () {
 
 roomSchema.virtual("availabilityStatus").get(function () {
   if (!this.isActive) return "inactive";
-  return this.availableSpots > 0 ? "available" : "full";
+  return this.availableSpots >= 0 ? "available" : "full";
 });
 
 export const Room = mongoose.model("Room", roomSchema);

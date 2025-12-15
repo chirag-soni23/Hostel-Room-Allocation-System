@@ -90,13 +90,29 @@ export default function RoomDetail() {
     }
   }, [isAuth, getMyBookings]);
 
+  // ---- Availability calc made robust ----
   const availableSpots = useMemo(() => {
+    // Prefer backend-provided virtuals/fields when available
+    if (typeof room?.availableSpots === "number") {
+      return Math.max(Number(room.availableSpots), 0);
+    }
+    if (typeof room?.availabilityStatus === "string") {
+      if (room.availabilityStatus.toLowerCase() === "full") return 0;
+      if (room.availabilityStatus.toLowerCase() === "available") {
+        // best-effort derive if capacity present
+        const cap = Number(room?.capacity ?? 0);
+        const occ = Number(room?.occupied ?? 0);
+        const calc = cap - occ;
+        return isFinite(calc) ? Math.max(calc, 1) : 1; // at least 1 if marked available
+      }
+    }
     const cap = Number(room?.capacity ?? 0);
     const occ = Number(room?.occupied ?? 0);
     return Math.max(cap - occ, 0);
-  }, [room?.capacity, room?.occupied]);
+  }, [room?.availableSpots, room?.availabilityStatus, room?.capacity, room?.occupied]);
 
-  const isAvailable = Boolean(availableSpots > 0 && room?.isActive);
+  const isActive = room?.isActive !== false; // default true unless explicitly false
+  const isAvailable = availableSpots > 0 && isActive && room?.availabilityStatus?.toLowerCase?.() !== "full";
 
   const isPaid = useMemo(() => {
     if (!room?._id || !Array.isArray(bookings)) return false;
@@ -202,12 +218,11 @@ export default function RoomDetail() {
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute top-4 left-4 flex gap-2">
-                  <Badge
-                    variant={isAvailable ? "default" : "secondary"}
-                    className={isAvailable ? "bg-success" : "bg-destructive"}
-                  >
-                    {isAvailable ? "Available" : "Full"}
-                  </Badge>
+                  {isAvailable ? (
+                    <Badge className="bg-success text-white">Available</Badge>
+                  ) : (
+                    <Badge className="bg-destructive text-white">Full</Badge>
+                  )}
                   <Badge variant="secondary">{room.type}</Badge>
                   {isPaid && (
                     <Badge
@@ -264,24 +279,23 @@ export default function RoomDetail() {
                 <div>
                   <h3 className="font-semibold mb-3">Amenities</h3>
                   <div className="flex flex-wrap gap-2">
-                    {room.amenities.map((a) => (
-                      <Badge
-                        key={a}
-                        variant="outline"
-                        className="flex items-center gap-1.5"
-                      >
-                        {a.toLowerCase().includes("wifi") && (
-                          <Wifi className="h-3 w-3" />
-                        )}
-                        {a.toLowerCase().includes("security") && (
-                          <Shield className="h-3 w-3" />
-                        )}
-                        {a.toLowerCase().includes("parking") && (
-                          <Car className="h-3 w-3" />
-                        )}
-                        {a}
-                      </Badge>
-                    ))}
+                    {room.amenities.map((a) => {
+                      const al = String(a || "").toLowerCase();
+                      return (
+                        <Badge
+                          key={a}
+                          variant="outline"
+                          className="flex items-center gap-1.5"
+                        >
+                          {al.includes("wifi") && <Wifi className="h-3 w-3" />}
+                          {al.includes("security") && (
+                            <Shield className="h-3 w-3" />
+                          )}
+                          {al.includes("parking") && <Car className="h-3 w-3" />}
+                          {a}
+                        </Badge>
+                      );
+                    })}
                   </div>
                 </div>
               )}
