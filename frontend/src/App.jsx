@@ -12,6 +12,7 @@ import AddRoom from "./pages/admin/AddRoom";
 import Contact from "./pages/Contact";
 import TermsOfService from "./instruction/TermsOfService";
 import PrivacyPolicy from "./instruction/PrivacyPolicy";
+import Chatbot from "./hoc/Chatbot";
 
 const Index = lazy(() => import("./pages/Index"));
 const Hostels = lazy(() => import("./pages/Hostels"));
@@ -58,6 +59,7 @@ const App = () => {
       <BottomToTop />
       <Toaster />
       <Sonner />
+      <Chatbot/>
       <BrowserRouter>
         <ScrollToTop />
         <Suspense fallback={<FullscreenSpinner />}>

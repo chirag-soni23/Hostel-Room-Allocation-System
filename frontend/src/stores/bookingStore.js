@@ -1,14 +1,25 @@
 import api from "@/lib/axios";
 import { toast } from "sonner";
 import { create } from "zustand";
+import { useAuthStore } from "./authStore";
+
+const callFetchMe = async () => {
+  try {
+    const { fetchMe } = useAuthStore.getState?.() || {};
+    if (typeof fetchMe === "function") await fetchMe();
+  } catch {
+  }
+};
 
 export const useBookingStore = create((set, get) => ({
   draft: { room: null, checkInDate: "", months: 1, totalAmount: 0 },
+
   booking: null,
   bookings: [],
   adminBookings: [],
   total: 0,
   adminTotal: 0,
+
   loading: false,
   btnLoading: false,
 
@@ -33,19 +44,21 @@ export const useBookingStore = create((set, get) => ({
       const created = data?.data;
       if (created) set({ booking: created });
       toast.success("Booking created");
+
+      // refresh user profile
+      await callFetchMe();
+
       return created;
     } catch (err) {
       const errors = err?.response?.data?.errors;
       if (Array.isArray(errors)) errors.forEach((e) => toast.error(e));
-      else
-        toast.error(err?.response?.data?.message || "Failed to create booking");
+      else toast.error(err?.response?.data?.message || "Failed to create booking");
       throw err;
     } finally {
       set({ btnLoading: false });
     }
   },
 
-  // List my bookings
   getMyBookings: async ({
     status,
     page = 1,
@@ -97,7 +110,11 @@ export const useBookingStore = create((set, get) => ({
     try {
       const { data } = await api.patch(`/booking/${bookingId}/cancel`);
       toast.success(data?.message || "Booking cancelled");
+
+      // refresh my bookings & profile
       await get().getMyBookings();
+      await callFetchMe();
+
       return data?.data;
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to cancel booking");
@@ -107,6 +124,7 @@ export const useBookingStore = create((set, get) => ({
     }
   },
 
+  // Admin: list bookings
   adminListBookings: async ({
     userId,
     hostelId,
@@ -144,12 +162,18 @@ export const useBookingStore = create((set, get) => ({
     }
   },
 
+  // Admin: update status
   adminUpdateStatus: async (id, status) => {
     set({ btnLoading: true });
     try {
       const { data } = await api.patch(`/booking/${id}/status`, { status });
       toast.success("Status updated");
+
       await get().adminListBookings();
+
+      // refresh profile if current user might be affected
+      await callFetchMe();
+
       return data?.data;
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to update status");
@@ -159,12 +183,17 @@ export const useBookingStore = create((set, get) => ({
     }
   },
 
+  // Admin: delete booking
   adminDeleteBooking: async (id) => {
     set({ btnLoading: true });
     try {
       const { data } = await api.delete(`/booking/${id}`);
       toast.success(data?.message || "Booking deleted");
+
       await get().adminListBookings();
+
+      await callFetchMe();
+
       return true;
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to delete booking");
