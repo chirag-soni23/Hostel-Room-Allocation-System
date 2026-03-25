@@ -9,6 +9,8 @@ import contactRoutes from "./routes/contact.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import paymentRoutes from "./routes/payment.routes.js";
 import { connectDb } from "./database/db.js";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger.js";
 
 dotenv.config();
 const app = express();
@@ -25,7 +27,18 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-  })
+  }),
+);
+
+// swagger
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    swaggerOptions: {
+      withCredentials: true,
+    },
+  }),
 );
 
 // routes
